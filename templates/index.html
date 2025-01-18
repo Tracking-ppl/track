@@ -2,54 +2,194 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>YOLOv8 Object Detection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friendship Neural Network</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #ffcccb;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+            color: #4CAF50;
+        }
+
+        header p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+            flex: 1;
+        }
+
+        .upload-container {
+            border: 2px dashed #4CAF50;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 300px;
+            background-color: #fff;
+        }
+
+        .upload-container:hover {
+            background-color: #f9f9f9;
+        }
+
+        .upload-container input[type="file"] {
+            display: none;
+        }
+
+        .upload-container label {
+            font-size: 1rem;
+            color: #4CAF50;
+            cursor: pointer;
+            padding: 10px 20px;
+            background-color: #fff;
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .upload-container label:hover {
+            background-color: #4CAF50;
+            color: #fff;
+        }
+
+        .output-container {
+            margin-top: 20px;
+            text-align: center;
+            max-width: 100%;
+        }
+
         canvas {
-            display:block;
-            border: 1px solid black;
-            margin-top:10px;
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        footer {
+            background-color: #ffcccb;
+            padding: 10px;
+            text-align: center;
+            color: #555;
+        }
+
+        footer a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <input id="uploadInput" type="file"/>
-    <canvas></canvas>
-    <script>
-       const input = document.getElementById("uploadInput");
-       input.addEventListener("change",async(event) => {
-           const file = event.target.files[0];
-           const data = new FormData();
-           data.append("image_file",file,"image_file");
-           const response = await fetch("/detect",{
-               method:"post",
-               body:data
-           });
-           const boxes = await response.json();
-           draw_image_and_boxes(file,boxes);
-       })
+    <header>
+        <h1>Welcome to Our Friendship Neural Network</h1>
+        <p>Upload your drawings and let our AI process them!</p>
+    </header>
 
-       function draw_image_and_boxes(file,boxes) {
-          const img = new Image()
-          img.src = URL.createObjectURL(file);
-          img.onload = () => {
-              const canvas = document.querySelector("canvas");
-              canvas.width = img.width;
-              canvas.height = img.height;
-              const ctx = canvas.getContext("2d");
-              ctx.drawImage(img,0,0);
-              ctx.strokeStyle = "#00FF00";
-              ctx.lineWidth = 3;
-              ctx.font = "18px serif";
-              boxes.forEach(([x1,y1,x2,y2,label]) => {
-                  ctx.strokeRect(x1,y1,x2-x1,y2-y1);
-                  ctx.fillStyle = "#00ff00";
-                  const width = ctx.measureText(label).width;
-                  ctx.fillRect(x1,y1,width+10,25);
-                  ctx.fillStyle = "#000000";
-                  ctx.fillText(label,x1,y1+18);
-              });
-          }
-       }
-  </script>
+    <main>
+        <div class="upload-container">
+            <input type="file" id="file-input" accept="image/png, image/jpeg" />
+            <label for="file-input">Choose a drawing</label>
+        </div>
+
+        <div class="output-container">
+            <canvas id="canvas"></canvas>
+        </div>
+    </main>
+
+    <footer>
+        Made with ❤️ by two friends.
+    </footer>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const scale = Math.min(500 / img.width, 500 / img.height, 1);
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                    img.src = e.target.result;
+                };
+
+                reader.readAsDataURL(file);
+
+                const data = new FormData();
+                data.append("image_file", file, "image_file");
+                const response = await fetch("/detect", {
+                    method: "POST",
+                    body: data
+                });
+                const boxes = await response.json();
+                drawImageAndBoxes(file, boxes);
+            }
+        });
+
+        function drawImageAndBoxes(file, boxes) {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                const scale = Math.min(500 / img.width, 500 / img.height, 1);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                ctx.strokeStyle = "#00FF00";
+                ctx.lineWidth = 3;
+                ctx.font = "18px serif";
+                boxes.forEach(([x1, y1, x2, y2, label]) => {
+                    const scaledX1 = x1 * scale;
+                    const scaledY1 = y1 * scale;
+                    const scaledX2 = x2 * scale;
+                    const scaledY2 = y2 * scale;
+
+                    ctx.strokeRect(scaledX1, scaledY1, scaledX2 - scaledX1, scaledY2 - scaledY1);
+                    ctx.fillStyle = "#00FF00";
+                    const width = ctx.measureText(label).width;
+                    ctx.fillRect(scaledX1, scaledY1, width + 10, 25);
+                    ctx.fillStyle = "#000000";
+                    ctx.fillText(label, scaledX1 + 5, scaledY1 + 18);
+                });
+            };
+        }
+    </script>
 </body>
 </html>

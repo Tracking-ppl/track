@@ -21,7 +21,7 @@ def detect():
 
 
 def detect_objects_on_image(buf):
-    model = YOLO("yolov8m.pt")
+    model = YOLO("track/yolov8m.pt")
     results = model.predict(buf)
     result = results[0]
     output = []
